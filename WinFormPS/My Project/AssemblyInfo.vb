@@ -10,15 +10,15 @@ Imports System.Runtime.InteropServices
 
 <Assembly: AssemblyTitle("WinFormPS")>
 <Assembly: AssemblyDescription("")>
-<Assembly: AssemblyCompany("MSIF")>
+<Assembly: AssemblyCompany("")>
 <Assembly: AssemblyProduct("WinFormPS")>
-<Assembly: AssemblyCopyright("Copyright © MSIF 2022")>
+<Assembly: AssemblyCopyright("Copyright ©  2022")>
 <Assembly: AssemblyTrademark("")>
 
 <Assembly: ComVisible(False)>
 
 'The following GUID is for the ID of the typelib if this project is exposed to COM
-<Assembly: Guid("49370534-e34f-4dd8-b25a-430b6ee7b007")>
+<Assembly: Guid("67221739-da7f-49bc-a83f-f03db9baef6a")>
 
 ' Version information for an assembly consists of the following four values:
 '

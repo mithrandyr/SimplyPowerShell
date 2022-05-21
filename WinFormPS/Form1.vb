@@ -1,4 +1,4 @@
-﻿Imports System.Management.Automation
+﻿Imports Simply.PSDotNet
 Public Class Form1
 
     Private WithEvents PS As PSExecuter
@@ -23,11 +23,12 @@ Public Class Form1
         txtResults.AppendText(String.Format("[PowerShell] {0}{1}", theCode, Environment.NewLine))
 
         pbExecution.Style = ProgressBarStyle.Marquee
+        pbExecution.Value = 0
         Dim sw As Stopwatch = Stopwatch.StartNew
-        Dim results = Await PS.InvokeAsync(theCode)
+        'Dim results = Await PS.InvokeAsync(theCode)
+        Await PS.RunAsync(Of Object)(theCode)
         sw.Stop()
 
-        results.ForEach(Sub(x) txtResults.AppendText(x + Environment.NewLine))
         txtResults.AppendText(String.Format("==========[Elapsed: {0}ms]========================================{1}", sw.Elapsed.TotalMilliseconds, Environment.NewLine))
 
         IsWorking(False)
@@ -53,17 +54,28 @@ Public Class Form1
         End If
     End Sub
 
-    Private Sub UpdateProgress(theRecord As ProgressRecord) Handles PS.ProgressGenerated
+    Private Sub UpdateProgress(theRecord As PSProgressItem) Handles PS.ProgressGenerated
         'If InvokeRequired Then
-        'Me.Invoke(CType(Sub() UpdateProgress(theRecord), MethodInvoker))
+        '    Me.Invoke(New MethodInvoker(Sub()
+        '                                    If theRecord.PercentComplete = -1 Then
+        '                                        pbExecution.Style = ProgressBarStyle.Marquee
+        '                                    Else
+        '                                        pbExecution.Style = ProgressBarStyle.Blocks
+        '                                        pbExecution.Value = theRecord.PercentComplete
+        '                                    End If
+        '                                End Sub))
         'Else
         If theRecord.PercentComplete = -1 Then
-            pbExecution.Style = ProgressBarStyle.Marquee
-        Else
+                pbExecution.Style = ProgressBarStyle.Marquee
+            Else
             pbExecution.Style = ProgressBarStyle.Blocks
             pbExecution.Value = theRecord.PercentComplete
-        End If
+            End If
+        'End If
+    End Sub
 
+    Private Sub UpdateOutput(theObject As Object) Handles PS.OutputGenerated
+        txtResults.AppendText(theObject.ToString() + Environment.NewLine)
     End Sub
 
     Private Sub lstCommands_DoubleClick(sender As Object, e As EventArgs) Handles lstCommands.DoubleClick
