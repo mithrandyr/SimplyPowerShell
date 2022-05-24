@@ -55,22 +55,12 @@ Public Class Form1
     End Sub
 
     Private Sub UpdateProgress(theRecord As PSProgressItem) Handles PS.ProgressGenerated
-        'If InvokeRequired Then
-        '    Me.Invoke(New MethodInvoker(Sub()
-        '                                    If theRecord.PercentComplete = -1 Then
-        '                                        pbExecution.Style = ProgressBarStyle.Marquee
-        '                                    Else
-        '                                        pbExecution.Style = ProgressBarStyle.Blocks
-        '                                        pbExecution.Value = theRecord.PercentComplete
-        '                                    End If
-        '                                End Sub))
-        'Else
         If theRecord.PercentComplete = -1 Then
-                pbExecution.Style = ProgressBarStyle.Marquee
-            Else
+            pbExecution.Style = ProgressBarStyle.Marquee
+        Else
             pbExecution.Style = ProgressBarStyle.Blocks
             pbExecution.Value = theRecord.PercentComplete
-            End If
+        End If
         'End If
     End Sub
 

@@ -2,7 +2,7 @@
     Implements IDisposable
 
     Public Event ProgressGenerated(currentProgress As PSProgressItem)
-    Public Event OutputGenerated(currentOutput As Object)
+    Public Event OutputGenerated(currentOutput As PSOutputItem)
 
     Private disposedValue As Boolean
     Private _isBusy As Boolean = False
@@ -72,8 +72,10 @@
         Using ps = PowerShell.Create
             currentPS = ps
             ps.Runspace = PSRunspace
-            AddHandler ps.Streams.Progress.DataAdded, AddressOf ProgressAddedHandler
             ps.AddScript(scriptBlock)
+
+            AddHandler ps.Streams.Progress.DataAdded, AddressOf ProgressAddedHandler
+
             Dim output As New PSDataCollection(Of PSObject)
             Try
                 IsStopped = False
@@ -86,15 +88,6 @@
                                                                                             Return False
                                                                                         End If
                                                                                     End Function)
-                ' above line is erroring (inside the lamba) when the pipeline is stopped.
-                ' need to add logic to trap for errors
-                ' need to figure out the right way to cancel a pipeline in progress
-
-                'Dim iar2 = ps.BeginInvoke
-                'Dim c As New Threading.ManualResetEventSlim
-
-                'Threading.wa
-                'Await Task.WhenAny(iar.AsyncWaitHandle, c.)
             Finally
                 RemoveHandler ps.Streams.Progress.DataAdded, AddressOf ProgressAddedHandler
                 RemoveHandler output.DataAdded, AddressOf OutputAddedHandler
@@ -129,9 +122,9 @@
 
     Private Sub OutputAddedHandler(sender As PSDataCollection(Of PSObject), e As DataAddedEventArgs)
         If Threading.Thread.CurrentThread.ManagedThreadId = SourceThreadId Then
-            RaiseEvent OutputGenerated(sender(e.Index))
+            RaiseEvent OutputGenerated(PSOutputItem.Create(sender(e.Index)))
         Else
-            SourceContext.Post(Sub() RaiseEvent OutputGenerated(sender(e.Index)), Nothing)
+            SourceContext.Post(Sub() RaiseEvent OutputGenerated(PSOutputItem.Create(sender(e.Index))), Nothing)
         End If
     End Sub
 

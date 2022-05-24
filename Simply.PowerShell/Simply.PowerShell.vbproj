@@ -85,6 +85,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <Compile Include="PSExecuter.vb" />
+    <Compile Include="StreamItems\PSOutputItem.vb" />
     <Compile Include="StreamItems\PSStreamObject.vb" />
     <Compile Include="StreamItems\PSProgressItem.vb" />
   </ItemGroup>

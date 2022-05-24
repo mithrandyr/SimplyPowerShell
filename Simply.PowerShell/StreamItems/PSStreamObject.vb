@@ -12,6 +12,10 @@ Public Class PSStreamItem(Of T)
         If nGenerated Is Nothing Then nGenerated = DateTimeOffset.Now
         Me.Generated = nGenerated
     End Sub
+
+    Public Overrides Function ToString() As String
+        If BaseObject IsNot Nothing Then Return BaseObject.ToString
+    End Function
 End Class
 
 Public Enum PSStreamType
@@ -21,4 +25,5 @@ Public Enum PSStreamType
     Progress
     Verbose
     Warning
+    Output
 End Enum

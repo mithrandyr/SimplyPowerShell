@@ -7,6 +7,11 @@ Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Simply.PowerShell", "Simply
 EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "WinFormPS", "WinFormPS\WinFormPS.vbproj", "{80CD9A44-E548-446E-8B4E-8B403990B533}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7ADEF2F7-A110-41EC-84C0-8C50B0CFB741}"
+	ProjectSection(SolutionItems) = preProject
+		example.cs = example.cs
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -1,6 +1,6 @@
 ﻿Public Class PSProgressItem
     Inherits PSStreamItem(Of ProgressRecord)
-
+#Region "Properties"
     Public ReadOnly Property Activity As String
         Get
             Return BaseObject.Activity
@@ -41,6 +41,7 @@
             Return BaseObject.RecordType = ProgressRecordType.Completed
         End Get
     End Property
+#End Region
 
     Public Sub New(nProgressRecord As ProgressRecord, Optional nGenerated As Nullable(Of DateTimeOffset) = Nothing)
         MyBase.New(PSStreamType.Progress, nProgressRecord, nGenerated)
