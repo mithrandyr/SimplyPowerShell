@@ -3,7 +3,7 @@ Public Class PSStreamItem(Of T)
     Public ReadOnly Property Generated As DateTimeOffset
     Public ReadOnly Property StreamType As PSStreamType
 
-    Public ReadOnly BaseObject As T
+    Private Protected ReadOnly BaseObject As T
 
     Public Sub New(nStreamType As PSStreamType, nBaseObject As Object, Optional nGenerated As Nullable(Of DateTimeOffset) = Nothing)
         Me.StreamType = nStreamType
