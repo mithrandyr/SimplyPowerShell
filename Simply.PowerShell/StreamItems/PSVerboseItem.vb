@@ -1,7 +1,12 @@
 ﻿Public Class PSVerboseItem
-    Inherits PSStreamItem(Of VerboseRecord)
+    Inherits PSStreamItem
 #Region "Properties"
-    Public ReadOnly Property Message As String
+    Private Shadows ReadOnly Property BaseObject As VerboseRecord
+        Get
+            Return DirectCast(MyBase.BaseObject, VerboseRecord)
+        End Get
+    End Property
+    Public Overrides ReadOnly Property Message As String
         Get
             Return BaseObject.Message
         End Get

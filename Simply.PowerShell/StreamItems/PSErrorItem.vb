@@ -1,7 +1,17 @@
 ﻿Public Class PSErrorItem
-    Inherits PSStreamItem(Of ErrorRecord)
+    Inherits PSStreamItem
 
 #Region "Public Properties"
+    Private Shadows ReadOnly Property BaseObject As ErrorRecord
+        Get
+            Return DirectCast(MyBase.BaseObject, ErrorRecord)
+        End Get
+    End Property
+    Public Overrides ReadOnly Property Message As String
+        Get
+            Return BaseObject.Exception.Message
+        End Get
+    End Property
 
 #End Region
 

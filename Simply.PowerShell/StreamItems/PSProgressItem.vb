@@ -1,6 +1,19 @@
 ﻿Public Class PSProgressItem
-    Inherits PSStreamItem(Of ProgressRecord)
+    Inherits PSStreamItem
 #Region "Properties"
+    Private Shadows ReadOnly Property BaseObject As ProgressRecord
+        Get
+            Return DirectCast(MyBase.BaseObject, ProgressRecord)
+        End Get
+    End Property
+    Public Overrides ReadOnly Property Message As String
+        Get
+            Dim s As String = BaseObject.Activity
+            If Not String.IsNullOrWhiteSpace(BaseObject.StatusDescription) Then s += String.Format(" ({0})", BaseObject.StatusDescription)
+            If Not String.IsNullOrWhiteSpace(BaseObject.CurrentOperation) Then s += String.Format(" - {0}", BaseObject.CurrentOperation)
+            Return s
+        End Get
+    End Property
     Public ReadOnly Property Activity As String
         Get
             Return BaseObject.Activity

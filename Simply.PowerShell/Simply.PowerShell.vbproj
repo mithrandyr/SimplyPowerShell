@@ -88,7 +88,7 @@
     <Compile Include="StreamItems\PSErrorItem.vb" />
     <Compile Include="StreamItems\PSInformationItem.vb" />
     <Compile Include="StreamItems\PSOutputItem.vb" />
-    <Compile Include="StreamItems\PSStreamObject.vb" />
+    <Compile Include="StreamItems\PSStreamItem.vb" />
     <Compile Include="StreamItems\PSProgressItem.vb" />
     <Compile Include="StreamItems\PSWarningItem.vb" />
     <Compile Include="StreamItems\PSDebugItem.vb" />

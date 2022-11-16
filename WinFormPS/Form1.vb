@@ -68,6 +68,13 @@ Public Class Form1
         txtResults.AppendText(theObject.ToString() + Environment.NewLine)
     End Sub
 
+    Private Sub LogStreams(item As PSStreamItem) Handles PS.DebugGenerated, PS.ErrorGenerated, PS.InformationGenerated, PS.VerboseGenerated, PS.WarningGenerated
+        Dim lvi As New ListViewItem(item.Generated.ToString("s"))
+        lvi.SubItems.Add(item.StreamType.ToString)
+        lvi.SubItems.Add(item.Message)
+        lvStreams.Items.Add(lvi)
+    End Sub
+
     Private Sub lstCommands_DoubleClick(sender As Object, e As EventArgs) Handles lstCommands.DoubleClick
         txtCode.Text = lstCommands.SelectedItem
         txtCode.Focus()
@@ -77,4 +84,7 @@ Public Class Form1
         PS.CancelAsync()
     End Sub
 
+    Private Sub lvStreams_Resize(sender As Object, e As EventArgs) Handles lvStreams.Resize
+        lvStreams.Columns.Item(2).Width = lvStreams.Width - 325
+    End Sub
 End Class

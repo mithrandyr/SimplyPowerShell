@@ -1,9 +1,12 @@
 ﻿Imports System.Management.Automation
-Public Class PSStreamItem(Of T)
+
+Public MustInherit Class PSStreamItem
     Public ReadOnly Property Generated As DateTimeOffset
     Public ReadOnly Property StreamType As PSStreamType
 
-    Private Protected ReadOnly BaseObject As T
+    Private Protected ReadOnly BaseObject As Object
+
+    Public MustOverride ReadOnly Property Message As String
 
     Public Sub New(nStreamType As PSStreamType, nBaseObject As Object, Optional nGenerated As Nullable(Of DateTimeOffset) = Nothing)
         Me.StreamType = nStreamType

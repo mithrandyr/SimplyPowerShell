@@ -1,5 +1,15 @@
 ﻿Public Class PSOutputItem
-    Inherits PSStreamItem(Of PSObject)
+    Inherits PSStreamItem
+    Private Shadows ReadOnly Property BaseObject As PSObject
+        Get
+            Return DirectCast(MyBase.BaseObject, PSObject)
+        End Get
+    End Property
+    Public Overrides ReadOnly Property Message As String
+        Get
+            Return BaseObject.ToString
+        End Get
+    End Property
 
     Public ReadOnly Property Value As Object
         Get

@@ -1,7 +1,13 @@
 ﻿Public Class PSDebugItem
-    Inherits PSStreamItem(Of VerboseRecord)
+    Inherits PSStreamItem
 #Region "Properties"
-    Public ReadOnly Property Message As String
+    Private Shadows ReadOnly Property BaseObject As DebugRecord
+        Get
+            Return DirectCast(MyBase.BaseObject, DebugRecord)
+        End Get
+    End Property
+
+    Public Overrides ReadOnly Property Message As String
         Get
             Return BaseObject.Message
         End Get
@@ -9,10 +15,9 @@
 #End Region
 
     Public Sub New(nDebugRecord As DebugRecord, Optional nGenerated As Nullable(Of DateTimeOffset) = Nothing)
-        MyBase.New(PSStreamType.Verbose, nDebugRecord, nGenerated)
+        MyBase.New(PSStreamType.Debug, nDebugRecord, nGenerated)
     End Sub
     Public Shared Function Create(nDebugRecord As DebugRecord) As PSDebugItem
         Return New PSDebugItem(nDebugRecord, DateTime.Now)
     End Function
-
 End Class
