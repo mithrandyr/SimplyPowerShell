@@ -1,6 +1,11 @@
 ﻿Public Class PSWarningItem
     Inherits PSStreamItem(Of WarningRecord)
 #Region "Properties"
+    Public ReadOnly Property FullyQualifiedWarningId As String
+        Get
+            Return BaseObject.FullyQualifiedWarningId
+        End Get
+    End Property
     Public ReadOnly Property Message As String
         Get
             Return BaseObject.Message
