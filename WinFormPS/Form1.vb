@@ -26,7 +26,7 @@ Public Class Form1
         pbExecution.Value = 0
         Dim sw As Stopwatch = Stopwatch.StartNew
         'Dim results = Await PS.InvokeAsync(theCode)
-        Await PS.RunAsync(Of Object)(theCode)
+        Await PS.RunAsync(theCode)
         sw.Stop()
 
         txtResults.AppendText(String.Format("==========[Elapsed: {0}ms]========================================{1}", sw.Elapsed.TotalMilliseconds, Environment.NewLine))

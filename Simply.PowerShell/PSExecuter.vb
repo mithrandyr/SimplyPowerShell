@@ -3,6 +3,7 @@
 
 #Region "Public Events & Properties"
     Public Event DebugGenerated(currentDebug As PSDebugItem)
+    Public Event ErrorGenerated(currentError As PSErrorItem)
     Public Event InformationGenerated(currentInformation As PSInformationItem)
     Public Event ProgressGenerated(currentProgress As PSProgressItem)
     Public Event OutputGenerated(currentOutput As PSOutputItem)
@@ -69,6 +70,7 @@
 
     Public Async Function RunAsync(scriptBlock As String, Optional scriptParameters As Dictionary(Of String, Object) = Nothing) As Task(Of Boolean)
         If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
+
         _isBusy = True
         Using ps = PowerShell.Create
             psCurrent = ps
@@ -79,8 +81,8 @@
             Dim output As New PSDataCollection(Of PSObject)
             Try
                 _isStopped = False
+                HandlersAdd()
                 AddHandler output.DataAdded, AddressOf OutputAddedHandler
-                AddHandler ps.Streams.Progress.DataAdded, AddressOf ProgressAddedHandler
                 Return Await Task.Factory.FromAsync(ps.BeginInvoke(output, output), Function(iar)
                                                                                         If Not IsStopped Then
                                                                                             ps.EndInvoke(iar)
@@ -90,8 +92,8 @@
                                                                                         End If
                                                                                     End Function)
             Finally
-                RemoveHandler ps.Streams.Progress.DataAdded, AddressOf ProgressAddedHandler
                 RemoveHandler output.DataAdded, AddressOf OutputAddedHandler
+                HandlersRemove()
                 output.Dispose()
                 psCurrent = Nothing
                 _isBusy = False
@@ -114,47 +116,83 @@
     End Sub
 
 #Region "Private EventHandlers"
-    Private Sub DebugAddedHandler(sender As PSDataCollection(Of DebugRecord), e As DataAddedEventArgs)
+    Private Sub HandlersAdd()
+        With psCurrent.Streams
+            AddHandler .Debug.DataAdded, AddressOf DebugAddedHandler
+            AddHandler .Error.DataAdded, AddressOf ErrorAddedHandler
+            AddHandler .Information.DataAdded, AddressOf InformationAddedHandler
+            AddHandler .Progress.DataAdded, AddressOf ProgressAddedHandler
+            AddHandler .Verbose.DataAdded, AddressOf VerboseAddedHandler
+            AddHandler .Warning.DataAdded, AddressOf WarningAddedHandler
+        End With
+
+    End Sub
+    Private Sub HandlersRemove()
+        With psCurrent.Streams
+            RemoveHandler .Debug.DataAdded, AddressOf DebugAddedHandler
+            RemoveHandler .Error.DataAdded, AddressOf ErrorAddedHandler
+            RemoveHandler .Information.DataAdded, AddressOf InformationAddedHandler
+            RemoveHandler .Progress.DataAdded, AddressOf ProgressAddedHandler
+            RemoveHandler .Verbose.DataAdded, AddressOf VerboseAddedHandler
+            RemoveHandler .Warning.DataAdded, AddressOf WarningAddedHandler
+        End With
+    End Sub
+    Private Sub DebugAddedHandler(sender As Object, e As DataAddedEventArgs)
+        Dim item = PSDebugItem.Create(DirectCast(sender, PSDataCollection(Of DebugRecord))(e.Index))
+
         If Threading.Thread.CurrentThread.ManagedThreadId = SourceThreadId Then
-            RaiseEvent DebugGenerated(PSDebugItem.Create(sender(e.Index)))
+            RaiseEvent DebugGenerated(item)
         Else
-            SourceContext.Post(Sub() RaiseEvent DebugGenerated(PSDebugItem.Create(sender(e.Index))), Nothing)
+            SourceContext.Post(Sub() RaiseEvent DebugGenerated(item), Nothing)
         End If
     End Sub
-    Private Sub InformationAddedHandler(sender As PSDataCollection(Of InformationRecord), e As DataAddedEventArgs)
+    Private Sub ErrorAddedHandler(sender As Object, e As DataAddedEventArgs)
+        Dim item = PSErrorItem.Create(DirectCast(sender, PSDataCollection(Of ErrorRecord))(e.Index))
         If Threading.Thread.CurrentThread.ManagedThreadId = SourceThreadId Then
-            RaiseEvent InformationGenerated(PSInformationItem.Create(sender(e.Index)))
+            RaiseEvent ErrorGenerated(item)
         Else
-            SourceContext.Post(Sub() RaiseEvent InformationGenerated(PSInformationItem.Create(sender(e.Index))), Nothing)
+            SourceContext.Post(Sub() RaiseEvent ErrorGenerated(item), Nothing)
+        End If
+    End Sub
+    Private Sub InformationAddedHandler(sender As Object, e As DataAddedEventArgs)
+        Dim item = PSInformationItem.Create(DirectCast(sender, PSDataCollection(Of InformationRecord))(e.Index))
+        If Threading.Thread.CurrentThread.ManagedThreadId = SourceThreadId Then
+            RaiseEvent InformationGenerated(item)
+        Else
+            SourceContext.Post(Sub() RaiseEvent InformationGenerated(item), Nothing)
         End If
 
     End Sub
-    Private Sub OutputAddedHandler(sender As PSDataCollection(Of PSObject), e As DataAddedEventArgs)
+    Private Sub OutputAddedHandler(sender As Object, e As DataAddedEventArgs)
+        Dim item = PSOutputItem.Create(DirectCast(sender, PSDataCollection(Of PSObject))(e.Index))
         If Threading.Thread.CurrentThread.ManagedThreadId = SourceThreadId Then
-            RaiseEvent OutputGenerated(PSOutputItem.Create(sender(e.Index)))
+            RaiseEvent OutputGenerated(item)
         Else
-            SourceContext.Post(Sub() RaiseEvent OutputGenerated(PSOutputItem.Create(sender(e.Index))), Nothing)
+            SourceContext.Post(Sub() RaiseEvent OutputGenerated(item), Nothing)
         End If
     End Sub
-    Private Sub ProgressAddedHandler(sender As PSDataCollection(Of ProgressRecord), e As DataAddedEventArgs)
+    Private Sub ProgressAddedHandler(sender As Object, e As DataAddedEventArgs)
+        Dim item = PSProgressItem.Create(DirectCast(sender, PSDataCollection(Of ProgressRecord))(e.Index))
         If Threading.Thread.CurrentThread.ManagedThreadId = SourceThreadId Then
-            RaiseEvent ProgressGenerated(PSProgressItem.Create(sender(e.Index)))
+            RaiseEvent ProgressGenerated(item)
         Else
-            SourceContext.Post(Sub() RaiseEvent ProgressGenerated(PSProgressItem.Create(sender(e.Index))), Nothing)
+            SourceContext.Post(Sub() RaiseEvent ProgressGenerated(item), Nothing)
         End If
     End Sub
-    Private Sub VerboseAddedHandler(sender As PSDataCollection(Of VerboseRecord), e As DataAddedEventArgs)
+    Private Sub VerboseAddedHandler(sender As Object, e As DataAddedEventArgs)
+        Dim item = PSVerboseItem.Create(DirectCast(sender, PSDataCollection(Of VerboseRecord))(e.Index))
         If Threading.Thread.CurrentThread.ManagedThreadId = SourceThreadId Then
-            RaiseEvent VerboseGenerated(PSVerboseItem.Create(sender(e.Index)))
+            RaiseEvent VerboseGenerated(item)
         Else
-            SourceContext.Post(Sub() RaiseEvent VerboseGenerated(PSVerboseItem.Create(sender(e.Index))), Nothing)
+            SourceContext.Post(Sub() RaiseEvent VerboseGenerated(item), Nothing)
         End If
     End Sub
-    Private Sub WarningAddedHandler(sender As PSDataCollection(Of WarningRecord), e As DataAddedEventArgs)
+    Private Sub WarningAddedHandler(sender As Object, e As DataAddedEventArgs)
+        Dim item = PSWarningItem.Create(DirectCast(sender, PSDataCollection(Of WarningRecord))(e.Index))
         If Threading.Thread.CurrentThread.ManagedThreadId = SourceThreadId Then
-            RaiseEvent WarningGenerated(PSWarningItem.Create(sender(e.Index)))
+            RaiseEvent WarningGenerated(item)
         Else
-            SourceContext.Post(Sub() RaiseEvent WarningGenerated(PSWarningItem.Create(sender(e.Index))), Nothing)
+            SourceContext.Post(Sub() RaiseEvent WarningGenerated(item), Nothing)
         End If
     End Sub
 #End Region
