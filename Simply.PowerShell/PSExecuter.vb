@@ -85,8 +85,13 @@
                 AddHandler output.DataAdded, AddressOf OutputAddedHandler
                 Return Await Task.Factory.FromAsync(ps.BeginInvoke(output, output), Function(iar)
                                                                                         If Not IsStopped Then
-                                                                                            ps.EndInvoke(iar)
-                                                                                            Return True
+                                                                                            Try
+                                                                                                ps.EndInvoke(iar)
+                                                                                                Return True
+                                                                                            Catch ex As RuntimeException
+                                                                                                ps.Streams.Error.Add(New ErrorRecord(ex, Nothing, ErrorCategory.NotSpecified, Nothing))
+                                                                                                Return False
+                                                                                            End Try
                                                                                         Else
                                                                                             Return False
                                                                                         End If
