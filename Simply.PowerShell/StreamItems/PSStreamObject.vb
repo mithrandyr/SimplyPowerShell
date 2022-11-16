@@ -14,7 +14,11 @@ Public Class PSStreamItem(Of T)
     End Sub
 
     Public Overrides Function ToString() As String
-        If BaseObject IsNot Nothing Then Return BaseObject.ToString
+        If BaseObject IsNot Nothing Then
+            Return BaseObject.ToString
+        Else
+            Return MyBase.ToString
+        End If
     End Function
 End Class
 

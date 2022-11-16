@@ -58,5 +58,8 @@
     Public Sub New(nInformationRecord As InformationRecord)
         MyBase.New(PSStreamType.Information, nInformationRecord, nInformationRecord.TimeGenerated)
     End Sub
+    Public Shared Function Create(nInformationRecord As InformationRecord) As PSInformationItem
+        Return New PSInformationItem(nInformationRecord)
+    End Function
 
 End Class

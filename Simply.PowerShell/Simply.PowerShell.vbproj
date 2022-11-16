@@ -89,6 +89,9 @@
     <Compile Include="StreamItems\PSOutputItem.vb" />
     <Compile Include="StreamItems\PSStreamObject.vb" />
     <Compile Include="StreamItems\PSProgressItem.vb" />
+    <Compile Include="StreamItems\PSWarningItem.vb" />
+    <Compile Include="StreamItems\PSDebugItem.vb" />
+    <Compile Include="StreamItems\PSVerboseItem.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">
