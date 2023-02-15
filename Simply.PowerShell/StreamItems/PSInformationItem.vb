@@ -9,7 +9,7 @@
     End Property
     Public Overrides ReadOnly Property Message As String
         Get
-            Return Messages.FirstOrDefault
+            Return MessageData.ToString
         End Get
     End Property
 
@@ -26,17 +26,6 @@
     Public ReadOnly Property MessageData As Object
         Get
             Return BaseObject.MessageData
-        End Get
-    End Property
-    Public ReadOnly Iterator Property Messages As IEnumerable(Of String)
-        Get
-            If TypeOf BaseObject.MessageData Is IEnumerable Then
-                For Each m In CType(BaseObject.MessageData, IEnumerable)
-                    Yield m
-                Next
-            Else
-                Yield BaseObject.MessageData.ToString
-            End If
         End Get
     End Property
     Public ReadOnly Property NativeThreadId As UInteger
