@@ -12,6 +12,8 @@ Public Class PSExecuter
     Public Event OutputGenerated(currentOutput As PSOutputItem)
     Public Event VerboseGenerated(currentVerbose As PSVerboseItem)
     Public Event WarningGenerated(currentWarning As PSWarningItem)
+    Public Event ExecutionStarted()
+    Public Event ExecutionFinished()
 
     Public ReadOnly Property IsBusy As Boolean
         Get
@@ -55,6 +57,7 @@ Public Class PSExecuter
         psRunspace.Open()
     End Sub
     Public Sub Reset()
+        If IsBusy Then Throw New InvalidOperationException("Cannot Reset while executing powershell.")
         psRunspace.ResetRunspaceState()
     End Sub
     Public Sub CancelAsync()
@@ -68,6 +71,7 @@ Public Class PSExecuter
     Public Async Function ExecuteAsync(Optional useDefaultOutputHandler As Boolean = True, Optional useDefaultHandlers As Boolean = True) As Task(Of Boolean)
         If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
         If psCurrent Is Nothing Then Throw New InvalidOperationException("There is nothing to execute!")
+        RaiseEvent ExecutionStarted()
         _isBusy = True
         Dim ps = psCurrent
         ps.Runspace = psRunspace
@@ -92,6 +96,7 @@ Public Class PSExecuter
             ps.Dispose()
             psCurrent = Nothing
             _isBusy = False
+            RaiseEvent ExecutionFinished()
         End Try
     End Function
     Public Async Function RunAsync(scriptBlock As String, Optional scriptParameters As Dictionary(Of String, Object) = Nothing) As Task(Of Boolean)
@@ -106,15 +111,17 @@ Public Class PSExecuter
         Return Await ExecuteAsync()
         _isBusy = True
     End Function
-    Public Async Function GetResults(Of T)() As Task(Of IEnumerable(Of T))
+    Public Async Function GetResults(Of T)(Optional useDefaultHandlers As Boolean = False) As Task(Of IEnumerable(Of T))
         If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
         If psCurrent Is Nothing Then Throw New InvalidOperationException("There is nothing to execute!")
+        RaiseEvent ExecutionStarted()
         _isBusy = True
         Dim ps = psCurrent
         ps.Runspace = psRunspace
         Dim output As New PSDataCollection(Of PSObject)
         Try
             _isStopped = False
+            If useDefaultHandlers Then HandlersAdd()
             Await Task.Run(Function()
                                Try
                                    ps.Invoke(Nothing, output, Nothing)
@@ -126,21 +133,25 @@ Public Class PSExecuter
                            End Function)
             Return output.Select(Function(x) DirectCast(x.BaseObject, T)).ToList
         Finally
+            If useDefaultHandlers Then HandlersRemove()
             output.Dispose()
             ps.Dispose()
             psCurrent = Nothing
             _isBusy = False
+            RaiseEvent ExecutionFinished()
         End Try
     End Function
-    Public Async Function GetResults() As Task(Of IEnumerable(Of Object))
+    Public Async Function GetResults(Optional useDefaultHandlers As Boolean = False) As Task(Of IEnumerable(Of Object))
         If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
         If psCurrent Is Nothing Then Throw New InvalidOperationException("There is nothing to execute!")
+        RaiseEvent ExecutionStarted()
         _isBusy = True
         Dim ps = psCurrent
         ps.Runspace = psRunspace
         Dim output As New PSDataCollection(Of PSObject)
         Try
             _isStopped = False
+            If useDefaultHandlers Then HandlersAdd()
             Await Task.Run(Function()
                                Try
                                    ps.Invoke(Nothing, output, Nothing)
@@ -152,18 +163,20 @@ Public Class PSExecuter
                            End Function)
             Return output.Select(Function(x) x.AsExpandoObject).ToList
         Finally
+            If useDefaultHandlers Then HandlersRemove()
             output.Dispose()
             ps.Dispose()
             psCurrent = Nothing
             _isBusy = False
+            RaiseEvent ExecutionFinished()
         End Try
     End Function
-    Public Async Function GetResult(Of T)() As Task(Of T)
-        Dim results = Await GetResults(Of T)()
+    Public Async Function GetResult(Of T)(Optional useDefaultHandlers As Boolean = False) As Task(Of T)
+        Dim results = Await GetResults(Of T)(useDefaultHandlers)
         Return results.FirstOrDefault
     End Function
-    Public Async Function GetResult() As Task(Of Object)
-        Dim results = Await GetResults()
+    Public Async Function GetResult(Optional useDefaultHandlers As Boolean = False) As Task(Of Object)
+        Dim results = Await GetResults(useDefaultHandlers)
         Return results.FirstOrDefault
     End Function
     Public Async Function GetScriptVariable(Of T)(varName As String) As Task(Of IEnumerable(Of T))
@@ -193,25 +206,28 @@ Public Class PSExecuter
         Return Me
     End Function
 
-    Public Function AddParameter(paramName As String, Optional paramValue As Object = Nothing, Optional makeScriptBlock As Boolean = False) As PSExecuter
+    Public Function AddParameter(switchParamName As String) As PSExecuter
         If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
         If psCurrent Is Nothing Then Throw New InvalidOperationException("Cannot add parameters to nothing!")
-        If paramValue Is Nothing Then
-            psCurrent.AddParameter(paramName)
-        Else
-            If makeScriptBlock Then paramValue = ScriptBlock.Create(paramValue)
-            psCurrent.AddParameter(paramName, paramValue)
-        End If
+        psCurrent.AddParameter(switchParamName)
+        Return Me
+    End Function
+    Public Function AddParameter(paramName As String, paramValue As Object, Optional makeScriptBlock As Boolean = False) As PSExecuter
+        If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
+        If psCurrent Is Nothing Then Throw New InvalidOperationException("Cannot add parameters to nothing!")
+        If makeScriptBlock Then paramValue = ScriptBlock.Create(paramValue)
+        psCurrent.AddParameter(paramName, paramValue)
         Return Me
     End Function
 
     Public Function AddParameters(scriptParameters As Dictionary(Of String, Object)) As PSExecuter
         If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
         If psCurrent Is Nothing Then Throw New InvalidOperationException("Cannot add parameters to nothing!")
-
-        For Each kvp In scriptParameters
-            AddParameter(kvp.Key, kvp.Value)
-        Next
+        If scriptParameters IsNot Nothing Then
+            For Each kvp In scriptParameters
+                AddParameter(kvp.Key, kvp.Value)
+            Next
+        End If
         Return Me
     End Function
 
