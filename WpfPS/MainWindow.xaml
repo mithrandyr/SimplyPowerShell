@@ -13,22 +13,49 @@
         TextOptions.TextHintingMode="Auto"
         Background="{DynamicResource MaterialDesignPaper}"
         FontFamily="{DynamicResource MaterialDesignFont}"
+        d:DataContext="{d:DesignInstance local:MainWindowViewModel}"
         Title="PowerShell Hosted by WPF" Height="450" Width="800">
+    <Window.Resources>
+        <Style TargetType="md:Card">
+            <Setter Property="Margin" Value="24"/>
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+        <Style TargetType="Separator" x:Key="spacer">
+            <Setter Property="Visibility" Value="Hidden"/>
+            <Setter Property="Height" Value="20" />
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*"/>
             <ColumnDefinition Width="1*"/>
         </Grid.ColumnDefinitions>
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="1*" MinHeight="150"/>
-                <RowDefinition Height="3*"/>
-            </Grid.RowDefinitions>
-        </Grid>
-        <md:Card Grid.Column="1" Margin="10" Padding="10" Foreground="{DynamicResource MaterialDesignDarkForeground}" Background="{DynamicResource MaterialDesignDarkBackground}" >
+        <DockPanel>
+            <md:Card DockPanel.Dock="Top">
+                <StackPanel>
+                    <TextBox md:HintAssist.Hint="PowerShell to Execute" />
+                    <Separator Style="{StaticResource spacer}"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Execute" />
+                    </StackPanel>
+                </StackPanel>
+            </md:Card>
+            <md:Card>
+                <StackPanel>
+                    <TextBox md:HintAssist.Hint="PowerShell to Execute" />
+                    
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Execute" />
+                    </StackPanel>
+                </StackPanel>
+            </md:Card>
+        </DockPanel>
+        
+        
+        <md:Card Grid.Column="1">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="Command History" Style="{StaticResource MaterialDesignHeadline6TextBlock}" />
-                <ListView/>
+                <TextBlock DockPanel.Dock="Top" Text="Command History" Style="{DynamicResource MaterialDesignHeadline6TextBlock}" />
+                <ListView ItemsSource="{Binding CommandList}"/>
             </DockPanel>
         </md:Card>
         
