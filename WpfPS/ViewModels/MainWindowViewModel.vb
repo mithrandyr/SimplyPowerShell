@@ -96,6 +96,6 @@ Public Class MainWindowViewModel
         End Get
     End Property
 
-
+    Private WithEvents pse As New PSExecuter
 
 End Class

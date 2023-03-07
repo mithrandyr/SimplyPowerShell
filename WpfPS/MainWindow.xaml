@@ -33,21 +33,31 @@
         <DockPanel>
             <md:Card DockPanel.Dock="Top">
                 <StackPanel>
-                    <TextBox md:HintAssist.Hint="PowerShell to Execute" />
-                    <Separator Style="{StaticResource spacer}"/>
+                    <TextBox md:HintAssist.Hint="PowerShell to Execute" MinLines="4"
+                             Style="{DynamicResource MaterialDesignOutlinedTextBox}"
+                             Text="{Binding CommandToExecute}" />
+                    <Separator Style="{StaticResource spacer}" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Execute" />
                     </StackPanel>
                 </StackPanel>
             </md:Card>
             <md:Card>
-                <StackPanel>
-                    <TextBox md:HintAssist.Hint="PowerShell to Execute" />
-                    
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="Execute" />
-                    </StackPanel>
-                </StackPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Streams" Style="{StaticResource MaterialDesignHeadline6TextBlock}" />
+                    <ListBox DockPanel.Dock="Top" Style="{StaticResource MaterialDesignFilterChipPrimaryListBox}">
+                        <ListBoxItem Content="Information" IsSelected="{Binding ShowInformation}" />
+                        <ListBoxItem Content="Warning" IsSelected="{Binding ShowWarning}" />
+                        <ListBoxItem Content="Verbose" IsSelected="{Binding ShowVerbose}" />
+                        <ListBoxItem Content="Debug" IsSelected="{Binding ShowDebug}" />
+                        <ListBoxItem Content="Error" IsSelected="{Binding ShowError}" />
+                        <ListBoxItem Content="Progress" IsSelected="{Binding ShowProgress}" />
+                        <ListBoxItem Content="Output" IsSelected="{Binding ShowOutput}" />
+                    </ListBox>
+                    <ListView>
+                        
+                    </ListView>
+                </DockPanel>                
             </md:Card>
         </DockPanel>
         
