@@ -35,10 +35,14 @@
                 <StackPanel>
                     <TextBox md:HintAssist.Hint="PowerShell to Execute" MinLines="4"
                              Style="{DynamicResource MaterialDesignOutlinedTextBox}"
-                             Text="{Binding CommandToExecute}" />
+                             Text="{Binding CommandToExecute, UpdateSourceTrigger=PropertyChanged}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Command="{Binding ExecuteCommand}" Key="Return"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
                     <Separator Style="{StaticResource spacer}" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="Execute" />
+                        <Button Content="Execute" Command="{Binding ExecuteCommand}" />
                     </StackPanel>
                 </StackPanel>
             </md:Card>
@@ -65,7 +69,17 @@
         <md:Card Grid.Column="1">
             <DockPanel>
                 <TextBlock DockPanel.Dock="Top" Text="Command History" Style="{DynamicResource MaterialDesignHeadline6TextBlock}" />
-                <ListView ItemsSource="{Binding CommandList}"/>
+                <ListBox ItemsSource="{Binding CommandList}" SelectedValue="{Binding CommandListSelected}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding }">
+                                <TextBlock.InputBindings>
+                                    <MouseBinding Command="{Binding SelectHistoryCommand}" Gesture="LeftDoubleClick" />
+                                </TextBlock.InputBindings>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </DockPanel>
         </md:Card>
         

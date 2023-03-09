@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
+Imports CommunityToolkit.Mvvm.Input
 Imports Simply.PSDotNet
 
 Public Class MainWindowViewModel
@@ -15,8 +16,17 @@ Public Class MainWindowViewModel
     End Property
 
     ReadOnly Property CommandList As New ObservableCollection(Of String)
+    Private _commandListSelected As String
+    Public Property CommandListSelected As String
+        Get
+            Return _commandListSelected
+        End Get
+        Set(value As String)
+            SetPropertyAndVerifyCanExecute(_commandListSelected, value)
+        End Set
+    End Property
 
-    Private _streams As New List(Of PSStreamItem)
+    Private ReadOnly _streams As New List(Of PSStreamItem)
     Private _showInformation As Boolean = True
     Private _showWarning As Boolean = True
     Private _showVerbose As Boolean = False
@@ -97,5 +107,21 @@ Public Class MainWindowViewModel
     End Property
 
     Private WithEvents pse As New PSExecuter
+    Public ReadOnly Property ExecuteCommand As IAsyncRelayCommand
+    Public ReadOnly Property SelectHistoryCommand As IRelayCommand
 
+    Public Sub New()
+        ExecuteCommand = New AsyncRelayCommand(
+            Async Function()
+                Dim cmd = CommandToExecute
+                CommandToExecute = String.Empty
+                CommandList.Add(cmd)
+                Return Await pse.NewPipeline(cmd).ExecuteAsync
+            End Function, Function() Not String.IsNullOrWhiteSpace(CommandToExecute))
+        RegisterCommand(ExecuteCommand)
+
+        SelectHistoryCommand = New RelayCommand(Sub() CommandToExecute = CommandListSelected, Function() Not String.IsNullOrWhiteSpace(CommandListSelected))
+        RegisterCommand(SelectHistoryCommand)
+
+    End Sub
 End Class
