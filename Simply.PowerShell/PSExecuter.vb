@@ -20,10 +20,19 @@ Public Class PSExecuter
             Return _isBusy
         End Get
     End Property
-
     Public ReadOnly Property IsStopped As Boolean
         Get
             Return _isStopped
+        End Get
+    End Property
+    Public ReadOnly Property IsErrored As Boolean
+        Get
+            Return _isErrored
+        End Get
+    End Property
+    Public ReadOnly Property LastErrorMessage As String
+        Get
+            Return _lastErrorMessage
         End Get
     End Property
 #End Region
@@ -32,6 +41,8 @@ Public Class PSExecuter
     Private disposedValue As Boolean
     Private _isBusy As Boolean = False
     Private _isStopped As Boolean = False
+    Private _isErrored As Boolean = False
+    Private _lastErrorMessage As String
     Private psCurrent As PowerShell
     Private psRunspace As Runspaces.Runspace
     Private ReadOnly Property SourceContext As Threading.SynchronizationContext
@@ -60,6 +71,9 @@ Public Class PSExecuter
         If IsBusy Then Throw New InvalidOperationException("Cannot Reset while executing powershell.")
         psRunspace.ResetRunspaceState()
     End Sub
+    Public Sub SetSessionVariable(varName As String, value As Object)
+        psRunspace.SessionStateProxy.SetVariable(varName, value)
+    End Sub
     Public Sub CancelAsync()
         If psCurrent IsNot Nothing Then
             _isStopped = True
@@ -68,36 +82,100 @@ Public Class PSExecuter
     End Sub
 
 #Region "Async Functions that Execute Powershell"
-    Public Async Function ExecuteAsync(Optional useDefaultOutputHandler As Boolean = True, Optional useDefaultHandlers As Boolean = True) As Task(Of Boolean)
+    Private Sub PreExecution(Optional addDefaultHandlers As Boolean = False)
         If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
         If psCurrent Is Nothing Then Throw New InvalidOperationException("There is nothing to execute!")
+
         RaiseEvent ExecutionStarted()
+
+        _isErrored = False
+        _lastErrorMessage = String.Empty
         _isBusy = True
-        Dim ps = psCurrent
-        ps.Runspace = psRunspace
-        Dim output As New PSDataCollection(Of PSObject)
-        Try
-            _isStopped = False
-            If useDefaultHandlers Then HandlersAdd()
-            If useDefaultOutputHandler Then AddHandler output.DataAdded, AddressOf OutputAddedHandler
-            Return Await Task.Run(Function()
-                                      Try
-                                          ps.Invoke(Nothing, output, Nothing)
-                                          Return True
-                                      Catch ex As RuntimeException
-                                          ps.Streams.Error.Add(New ErrorRecord(ex, Nothing, ErrorCategory.NotSpecified, Nothing))
-                                          Return False
-                                      End Try
-                                  End Function)
-        Finally
-            If useDefaultOutputHandler Then RemoveHandler output.DataAdded, AddressOf OutputAddedHandler
-            If useDefaultHandlers Then HandlersRemove()
-            output.Dispose()
-            ps.Dispose()
-            psCurrent = Nothing
-            _isBusy = False
-            RaiseEvent ExecutionFinished()
-        End Try
+        _isStopped = False
+        psCurrent.Runspace = psRunspace
+        If addDefaultHandlers Then HandlersAdd()
+    End Sub
+    Private Sub PostExecution(Optional removeDefaultHandlers As Boolean = False)
+        If removeDefaultHandlers Then HandlersRemove()
+        psCurrent = Nothing
+        _isBusy = False
+        RaiseEvent ExecutionFinished()
+    End Sub
+    Public Async Function ExecuteAsync(Optional useDefaultOutputHandler As Boolean = True, Optional useDefaultHandlers As Boolean = True) As Task(Of Boolean)
+        PreExecution(useDefaultHandlers)
+        Using ps = psCurrent
+            Using output As New PSDataCollection(Of PSObject)
+                Try
+                    If useDefaultOutputHandler Then AddHandler output.DataAdded, AddressOf OutputAddedHandler
+                    Return Await Task.Run(Function()
+                                              Try
+                                                  ps.Invoke(Nothing, output, Nothing)
+                                                  Return True
+                                              Catch ex As RuntimeException
+                                                  ps.Streams.Error.Add(New ErrorRecord(ex, Nothing, ErrorCategory.NotSpecified, Nothing))
+                                                  Return False
+                                              End Try
+                                          End Function)
+                Finally
+                    If useDefaultOutputHandler Then RemoveHandler output.DataAdded, AddressOf OutputAddedHandler
+                    PostExecution(useDefaultHandlers)
+                End Try
+            End Using
+        End Using
+    End Function
+    Public Async Function GetResults(Of T)(Optional useDefaultHandlers As Boolean = False) As Task(Of IEnumerable(Of T))
+        PreExecution(useDefaultHandlers)
+        Using ps = psCurrent
+            Using output As New PSDataCollection(Of PSObject)
+                Try
+                    Await Task.Run(Function()
+                                       Try
+                                           ps.Invoke(Nothing, output, Nothing)
+                                           Return True
+                                       Catch ex As RuntimeException
+                                           ps.Streams.Error.Add(New ErrorRecord(ex, Nothing, ErrorCategory.NotSpecified, Nothing))
+                                           _isErrored = True
+                                           _lastErrorMessage = ex.Message
+                                           Return False
+                                       End Try
+                                   End Function)
+                    Return output.Select(Function(x) DirectCast(x.BaseObject, T)).ToList
+                Finally
+                    PostExecution(useDefaultHandlers)
+                End Try
+            End Using
+        End Using
+    End Function
+    Public Async Function GetResults(Optional useDefaultHandlers As Boolean = False) As Task(Of IEnumerable(Of Object))
+        PreExecution(useDefaultHandlers)
+        Using ps = psCurrent
+            Using output As New PSDataCollection(Of PSObject)
+                Try
+                    Await Task.Run(Function()
+                                       Try
+                                           ps.Invoke(Nothing, output, Nothing)
+                                           Return True
+                                       Catch ex As RuntimeException
+                                           ps.Streams.Error.Add(New ErrorRecord(ex, Nothing, ErrorCategory.NotSpecified, Nothing))
+                                           _isErrored = True
+                                           _lastErrorMessage = ex.Message
+                                           Return False
+                                       End Try
+                                   End Function)
+                    Return output.Select(Function(x) x.AsExpandoObject).ToList
+                Finally
+                    PostExecution(useDefaultHandlers)
+                End Try
+            End Using
+        End Using
+    End Function
+    Public Async Function GetResult(Of T)(Optional useDefaultHandlers As Boolean = False) As Task(Of T)
+        Dim results = Await GetResults(Of T)(useDefaultHandlers)
+        Return results.FirstOrDefault
+    End Function
+    Public Async Function GetResult(Optional useDefaultHandlers As Boolean = False) As Task(Of Object)
+        Dim results = Await GetResults(useDefaultHandlers)
+        Return results.FirstOrDefault
     End Function
     Public Async Function RunAsync(scriptBlock As String, Optional scriptParameters As Dictionary(Of String, Object) = Nothing) As Task(Of Boolean)
         If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
@@ -110,74 +188,6 @@ Public Class PSExecuter
         End If
         Return Await ExecuteAsync()
         _isBusy = True
-    End Function
-    Public Async Function GetResults(Of T)(Optional useDefaultHandlers As Boolean = False) As Task(Of IEnumerable(Of T))
-        If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
-        If psCurrent Is Nothing Then Throw New InvalidOperationException("There is nothing to execute!")
-        RaiseEvent ExecutionStarted()
-        _isBusy = True
-        Dim ps = psCurrent
-        ps.Runspace = psRunspace
-        Dim output As New PSDataCollection(Of PSObject)
-        Try
-            _isStopped = False
-            If useDefaultHandlers Then HandlersAdd()
-            Await Task.Run(Function()
-                               Try
-                                   ps.Invoke(Nothing, output, Nothing)
-                                   Return True
-                               Catch ex As RuntimeException
-                                   ps.Streams.Error.Add(New ErrorRecord(ex, Nothing, ErrorCategory.NotSpecified, Nothing))
-                                   Return False
-                               End Try
-                           End Function)
-            Return output.Select(Function(x) DirectCast(x.BaseObject, T)).ToList
-        Finally
-            If useDefaultHandlers Then HandlersRemove()
-            output.Dispose()
-            ps.Dispose()
-            psCurrent = Nothing
-            _isBusy = False
-            RaiseEvent ExecutionFinished()
-        End Try
-    End Function
-    Public Async Function GetResults(Optional useDefaultHandlers As Boolean = False) As Task(Of IEnumerable(Of Object))
-        If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
-        If psCurrent Is Nothing Then Throw New InvalidOperationException("There is nothing to execute!")
-        RaiseEvent ExecutionStarted()
-        _isBusy = True
-        Dim ps = psCurrent
-        ps.Runspace = psRunspace
-        Dim output As New PSDataCollection(Of PSObject)
-        Try
-            _isStopped = False
-            If useDefaultHandlers Then HandlersAdd()
-            Await Task.Run(Function()
-                               Try
-                                   ps.Invoke(Nothing, output, Nothing)
-                                   Return True
-                               Catch ex As RuntimeException
-                                   ps.Streams.Error.Add(New ErrorRecord(ex, Nothing, ErrorCategory.NotSpecified, Nothing))
-                                   Return False
-                               End Try
-                           End Function)
-            Return output.Select(Function(x) x.AsExpandoObject).ToList
-        Finally
-            If useDefaultHandlers Then HandlersRemove()
-            output.Dispose()
-            ps.Dispose()
-            psCurrent = Nothing
-            _isBusy = False
-            RaiseEvent ExecutionFinished()
-        End Try
-    End Function
-    Public Async Function GetResult(Of T)(Optional useDefaultHandlers As Boolean = False) As Task(Of T)
-        Dim results = Await GetResults(Of T)(useDefaultHandlers)
-        Return results.FirstOrDefault
-    End Function
-    Public Async Function GetResult(Optional useDefaultHandlers As Boolean = False) As Task(Of Object)
-        Dim results = Await GetResults(useDefaultHandlers)
-        Return results.FirstOrDefault
     End Function
     Public Async Function GetScriptVariable(Of T)(varName As String) As Task(Of IEnumerable(Of T))
         Return Await NewPipeline.AddCommand("Get-Variable").AddArgument(varName).AddParameter("ValueOnly").GetResults(Of T)()
@@ -238,12 +248,8 @@ Public Class PSExecuter
         psCurrent.AddArgument(argValue)
         Return Me
     End Function
-    Public Sub SetSessionVariable(varName As String, value As Object)
-        psRunspace.SessionStateProxy.SetVariable(varName, value)
-    End Sub
-
     Public Function SetScriptVariable(varName As String, value As Object) As PSExecuter
-        NewPipeline.AddCommand("set-variable").AddArgument(varName).AddArgument(value)
+        NewPipeline.AddCommand("Set-Variable").AddArgument(varName).AddArgument(value)
         Return Me
     End Function
 #End Region
