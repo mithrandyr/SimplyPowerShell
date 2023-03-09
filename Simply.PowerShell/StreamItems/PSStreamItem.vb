@@ -8,6 +8,12 @@ Public MustInherit Class PSStreamItem
 
     Public MustOverride ReadOnly Property Message As String
 
+    Public ReadOnly Property LogMessage As String
+        Get
+            Return $"[{Generated.ToString("yyyy-MM-dd HH:mm:ss")}] <{StreamType.ToString}> {Message}"
+        End Get
+    End Property
+
     Public Sub New(nStreamType As PSStreamType, nBaseObject As Object, Optional nGenerated As Nullable(Of DateTimeOffset) = Nothing)
         Me.StreamType = nStreamType
         Me.BaseObject = nBaseObject
