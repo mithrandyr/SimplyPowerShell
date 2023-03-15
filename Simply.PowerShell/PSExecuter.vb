@@ -113,6 +113,8 @@ Public Class PSExecuter
                                                   Return True
                                               Catch ex As RuntimeException
                                                   ps.Streams.Error.Add(New ErrorRecord(ex, Nothing, ErrorCategory.NotSpecified, Nothing))
+                                                  _isErrored = True
+                                                  _lastErrorMessage = ex.Message
                                                   Return False
                                               End Try
                                           End Function)
