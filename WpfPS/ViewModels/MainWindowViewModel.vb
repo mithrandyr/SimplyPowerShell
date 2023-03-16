@@ -1,17 +1,28 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.Threading
 Imports CommunityToolkit.Mvvm.Input
 Imports Simply.PSDotNet
 
 Public Class MainWindowViewModel
     Inherits BaseViewModel
 
-    Private _commandToExecute
+    Private _commandToExecute As String
     Property CommandToExecute As String
         Get
             Return _commandToExecute
         End Get
         Set(value As String)
             SetPropertyAndVerifyCanExecute(_commandToExecute, value)
+        End Set
+    End Property
+
+    Private _IncludeData As Boolean
+    Property IncludeData As Boolean
+        Get
+            Return _IncludeData
+        End Get
+        Set(value As Boolean)
+            SetProperty(_IncludeData, value)
         End Set
     End Property
 
@@ -26,6 +37,9 @@ Public Class MainWindowViewModel
         End Set
     End Property
 
+    ReadOnly Property ReturnedData As New ObservableCollection(Of ReturnedData)
+
+#Region "Streams"
     Private ReadOnly _streams As New List(Of PSStreamItem)
     Private _showInformation As Boolean = True
     Private _showWarning As Boolean = True
@@ -105,19 +119,27 @@ Public Class MainWindowViewModel
             Return query.ToList
         End Get
     End Property
+#End Region
 
     Public ReadOnly Property ClearStreamsCommand As IRelayCommand
-
     Public ReadOnly Property ExecuteCommand As IAsyncRelayCommand
     Public ReadOnly Property SelectHistoryCommand As IRelayCommand
+    Public ReadOnly Property CancelExecutionCommand As IRelayCommand
+    Private ExecutionCTS As CancellationTokenSource
+
+    Public ReadOnly Property TestCommand As IAsyncRelayCommand
 
     Public Sub New()
         ExecuteCommand = New AsyncRelayCommand(
             Async Function()
+                ReturnedData.Clear()
                 Dim cmd = CommandToExecute
                 CommandToExecute = String.Empty
                 CommandList.Add(cmd)
-                Return Await pse.NewPipeline(cmd).ExecuteAsync
+                Using cts As New CancellationTokenSource
+                    ExecutionCTS = cts
+                    Return Await pse.NewPipeline(cmd).ExecuteAsync(ct:=cts.Token)
+                End Using
             End Function, Function() Not String.IsNullOrWhiteSpace(CommandToExecute))
         RegisterCommand(ExecuteCommand)
 
@@ -132,6 +154,18 @@ Public Class MainWindowViewModel
             End Sub, Function() _streams.Count > 0)
 
         RegisterCommand(ClearStreamsCommand)
+
+        CancelExecutionCommand = New RelayCommand(Sub() ExecutionCTS.Cancel(), Function() ExecuteCommand.IsRunning)
+        RegisterCommand(CancelExecutionCommand)
+
+        'Test Command
+        TestCommand = New AsyncRelayCommand(
+            Async Function()
+                Await pse.NewPipeline("filter x { write-host ""#$_""}").ExecuteAsync
+                pse.AddCommand("x")
+                Return Await pse.ExecuteAsync({1, 2, 3})
+            End Function, Function() Not ExecuteCommand.IsRunning)
+        RegisterCommand(TestCommand)
     End Sub
 
 #Region "Powershell Executer & Handlers"
@@ -141,6 +175,9 @@ Public Class MainWindowViewModel
         _streams.Add(streamData)
         OnPropertyChanged(NameOf(VisibleStreams))
         VerifyCommandsCanExecute()
+        If streamData.StreamType = PSStreamType.Output Then
+            ReturnedData.Add(New ReturnedData(DirectCast(streamData, PSOutputItem).Value, False))
+        End If
     End Sub
 #End Region
 End Class

@@ -17,11 +17,11 @@
         d:DataContext="{d:DesignInstance local:MainWindowViewModel}"
         Title="PowerShell Hosted by WPF" Height="450" Width="800">
     <Window.Resources>
-        <Style TargetType="md:Card">
+        <Style TargetType="md:Card" BasedOn="{StaticResource MaterialDesignElevatedCard}">
             <Setter Property="Margin" Value="24"/>
-            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Padding" Value="12"/>
         </Style>
-        <Style TargetType="Separator" x:Key="spacer">
+        <Style TargetType="Separator" x:Key="spacer" BasedOn="{StaticResource MaterialDesignSeparator}">
             <Setter Property="Visibility" Value="Hidden"/>
             <Setter Property="Height" Value="20" />
         </Style>
@@ -43,6 +43,8 @@
                     </TextBox>
                     <Separator Style="{StaticResource spacer}" />
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="TestCommand" Command="{Binding TestCommand}" />
+                        <CheckBox Content="Pass in Data" Margin="16,0,16,0" IsChecked="{Binding IncludeData}"/>
                         <Button Content="Execute" Command="{Binding ExecuteCommand}" />
                     </StackPanel>
                 </StackPanel>
@@ -60,35 +62,51 @@
                                 ToolTip="Clear all Streams">
                             <md:PackIcon Kind="Trash"/>
                         </Button>
-                    </Grid>                    
-                    <ListBox DockPanel.Dock="Top" Style="{StaticResource MaterialDesignFilterChipPrimaryListBox}">
-                        <ListBoxItem Content="Information" IsSelected="{Binding ShowInformation}" />
-                        <ListBoxItem Content="Warning" IsSelected="{Binding ShowWarning}" />
-                        <ListBoxItem Content="Verbose" IsSelected="{Binding ShowVerbose}" />
-                        <ListBoxItem Content="Debug" IsSelected="{Binding ShowDebug}" />
-                        <ListBoxItem Content="Error" IsSelected="{Binding ShowError}" />
-                        <ListBoxItem Content="Progress" IsSelected="{Binding ShowProgress}" />
-                        <ListBoxItem Content="Output" IsSelected="{Binding ShowOutput}" />
-                    </ListBox>
+                    </Grid>
+                    <WrapPanel DockPanel.Dock="top" Orientation="Horizontal">
+                        <WrapPanel.Resources>
+                            <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignSecondaryCheckBox}">
+                                <Setter Property="Margin" Value="0,0,8,0"/>
+                            </Style>
+                        </WrapPanel.Resources>
+                        <CheckBox Content="Information" IsChecked="{Binding ShowInformation}" />
+                        <CheckBox Content="Warning" IsChecked="{Binding ShowWarning}" />
+                        <CheckBox Content="Verbose" IsChecked="{Binding ShowVerbose}" />
+                        <CheckBox Content="Debug" IsChecked="{Binding ShowDebug}" />
+                        <CheckBox Content="Error" IsChecked="{Binding ShowError}" />
+                        <CheckBox Content="Progress" IsChecked="{Binding ShowProgress}" />
+                        <CheckBox Content="Output" IsChecked="{Binding ShowOutput}" />
+                    </WrapPanel>                    
                     <ListView ItemsSource="{Binding VisibleStreams}" DisplayMemberPath="LogMessage">
                         
                     </ListView>
                 </DockPanel>                
             </md:Card>
         </DockPanel>
-        
-        
+
         <md:Card Grid.Column="1">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="Command History" Style="{DynamicResource MaterialDesignHeadline6TextBlock}" />
-                <ListBox ItemsSource="{Binding CommandList}" SelectedValue="{Binding CommandListSelected}">
-                    <i:Interaction.Triggers>
-                        <i:EventTrigger EventName="MouseDoubleClick">
-                            <i:InvokeCommandAction Command="{Binding SelectHistoryCommand}" />
-                        </i:EventTrigger>
-                    </i:Interaction.Triggers>
-                </ListBox>
-            </DockPanel>
+            <StackPanel>
+                <Expander HorizontalAlignment="Stretch" Background="Transparent">
+                    <Expander.Header>
+                        <TextBlock Text="Command History" Margin="-16,0,0,0" Style="{StaticResource MaterialDesignSubtitle2TextBlock}" />
+                    </Expander.Header>
+                    <ListBox ItemsSource="{Binding CommandList}" SelectedValue="{Binding CommandListSelected}">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="MouseDoubleClick">
+                                <i:InvokeCommandAction Command="{Binding SelectHistoryCommand}" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                    </ListBox>
+                </Expander>
+                <Expander HorizontalAlignment="Stretch" Background="Transparent">
+                    <Expander.Header>
+                        <TextBlock Text="Returned Data" Margin="-16,0,0,0" Style="{StaticResource MaterialDesignSubtitle2TextBlock}" />
+                    </Expander.Header>
+                    <ListView ItemsSource="{Binding ReturnedData}" SelectionMode="Extended" DisplayMemberPath="Data">
+                        
+                    </ListView>
+                </Expander>
+            </StackPanel>            
         </md:Card>
         
     </Grid>

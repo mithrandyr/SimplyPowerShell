@@ -13,7 +13,7 @@
 
     Public ReadOnly Property Value As Object
         Get
-            Return MyBase.BaseObject.BaseObject
+            Return MyBase.BaseObject
         End Get
     End Property
 

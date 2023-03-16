@@ -35,6 +35,7 @@ Public Class PSExecuter
             Return _lastErrorMessage
         End Get
     End Property
+    Public Property UseDefaultHandlers As Boolean = True
 #End Region
 
 #Region "Private Variables & Properties"
@@ -82,7 +83,7 @@ Public Class PSExecuter
     End Sub
 
 #Region "Async Functions that Execute Powershell"
-    Private Sub PreExecution(Optional addDefaultHandlers As Boolean = False)
+    Private Sub PreExecution()
         If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
         If psCurrent Is Nothing Then Throw New InvalidOperationException("There is nothing to execute!")
 
@@ -93,24 +94,25 @@ Public Class PSExecuter
         _isBusy = True
         _isStopped = False
         psCurrent.Runspace = psRunspace
-        If addDefaultHandlers Then HandlersAdd()
+        If UseDefaultHandlers Then HandlersAdd()
     End Sub
-    Private Sub PostExecution(Optional removeDefaultHandlers As Boolean = False)
-        If removeDefaultHandlers Then HandlersRemove()
+    Private Sub PostExecution()
+        If UseDefaultHandlers Then HandlersRemove()
         psCurrent = Nothing
         _isBusy = False
         RaiseEvent ExecutionFinished()
     End Sub
-    Public Async Function ExecuteAsync(Optional useDefaultOutputHandler As Boolean = True, Optional useDefaultHandlers As Boolean = True, Optional ct As CancellationToken = Nothing) As Task(Of Boolean)
-        PreExecution(useDefaultHandlers)
+    Public Async Function ExecuteAsync(Optional input As Object = Nothing, Optional ct As CancellationToken = Nothing) As Task(Of Boolean)
+        PreExecution()
         If ct.CanBeCanceled Then ct.Register(AddressOf CancelAsync)
+        If input IsNot Nothing AndAlso TypeOf input IsNot ICollection Then input = New Object() {input}
         Using ps = psCurrent
             Using output As New PSDataCollection(Of PSObject)
                 Try
-                    If useDefaultOutputHandler Then AddHandler output.DataAdded, AddressOf OutputAddedHandler
+                    If UseDefaultHandlers Then AddHandler output.DataAdded, AddressOf OutputAddedHandler
                     Return Await Task.Run(Function()
                                               Try
-                                                  ps.Invoke(Nothing, output, Nothing)
+                                                  ps.Invoke(input, output, Nothing)
                                                   Return True
                                               Catch ex As RuntimeException
                                                   ps.Streams.Error.Add(New ErrorRecord(ex, Nothing, ErrorCategory.NotSpecified, Nothing))
@@ -120,21 +122,21 @@ Public Class PSExecuter
                                               End Try
                                           End Function)
                 Finally
-                    If useDefaultOutputHandler Then RemoveHandler output.DataAdded, AddressOf OutputAddedHandler
-                    PostExecution(useDefaultHandlers)
+                    If UseDefaultHandlers Then RemoveHandler output.DataAdded, AddressOf OutputAddedHandler
+                    PostExecution()
                 End Try
             End Using
         End Using
     End Function
-    Public Async Function GetResults(Of T)(Optional useDefaultHandlers As Boolean = False, Optional ct As CancellationToken = Nothing) As Task(Of IEnumerable(Of T))
-        PreExecution(useDefaultHandlers)
+    Public Async Function GetResults(Of T)(Optional input As IEnumerable = Nothing, Optional ct As CancellationToken = Nothing) As Task(Of IEnumerable(Of T))
+        PreExecution()
         If ct.CanBeCanceled Then ct.Register(AddressOf CancelAsync)
         Using ps = psCurrent
             Using output As New PSDataCollection(Of PSObject)
                 Try
                     Await Task.Run(Function()
                                        Try
-                                           ps.Invoke(Nothing, output, Nothing)
+                                           ps.Invoke(input, output, Nothing)
                                            Return True
                                        Catch ex As RuntimeException
                                            ps.Streams.Error.Add(New ErrorRecord(ex, Nothing, ErrorCategory.NotSpecified, Nothing))
@@ -145,20 +147,20 @@ Public Class PSExecuter
                                    End Function)
                     Return output.Select(Function(x) DirectCast(x.BaseObject, T)).ToList
                 Finally
-                    PostExecution(useDefaultHandlers)
+                    PostExecution()
                 End Try
             End Using
         End Using
     End Function
-    Public Async Function GetResults(Optional useDefaultHandlers As Boolean = False, Optional ct As CancellationToken = Nothing) As Task(Of IEnumerable(Of Object))
-        PreExecution(useDefaultHandlers)
+    Public Async Function GetResults(Optional input As IEnumerable = Nothing, Optional ct As CancellationToken = Nothing) As Task(Of IEnumerable(Of Object))
+        PreExecution()
         If ct.CanBeCanceled Then ct.Register(AddressOf CancelAsync)
         Using ps = psCurrent
             Using output As New PSDataCollection(Of PSObject)
                 Try
                     Await Task.Run(Function()
                                        Try
-                                           ps.Invoke(Nothing, output, Nothing)
+                                           ps.Invoke(input, output, Nothing)
                                            Return True
                                        Catch ex As RuntimeException
                                            ps.Streams.Error.Add(New ErrorRecord(ex, Nothing, ErrorCategory.NotSpecified, Nothing))
@@ -169,17 +171,17 @@ Public Class PSExecuter
                                    End Function)
                     Return output.Select(Function(x) x.AsExpandoObject).ToList
                 Finally
-                    PostExecution(useDefaultHandlers)
+                    PostExecution()
                 End Try
             End Using
         End Using
     End Function
-    Public Async Function GetResult(Of T)(Optional useDefaultHandlers As Boolean = False, Optional ct As CancellationToken = Nothing) As Task(Of T)
-        Dim results = Await GetResults(Of T)(useDefaultHandlers, ct:=ct)
+    Public Async Function GetResult(Of T)(Optional input As IEnumerable = Nothing, Optional ct As CancellationToken = Nothing) As Task(Of T)
+        Dim results = Await GetResults(Of T)(input, ct:=ct)
         Return results.FirstOrDefault
     End Function
-    Public Async Function GetResult(Optional useDefaultHandlers As Boolean = False, Optional ct As CancellationToken = Nothing) As Task(Of Object)
-        Dim results = Await GetResults(useDefaultHandlers, ct:=ct)
+    Public Async Function GetResult(Optional input As IEnumerable = Nothing, Optional ct As CancellationToken = Nothing) As Task(Of Object)
+        Dim results = Await GetResults(input, ct:=ct)
         Return results.FirstOrDefault
     End Function
     Public Async Function RunAsync(scriptBlock As String, Optional scriptParameters As Dictionary(Of String, Object) = Nothing, Optional ct As CancellationToken = Nothing) As Task(Of Boolean)
