@@ -101,8 +101,9 @@ Public Class PSExecuter
         _isBusy = False
         RaiseEvent ExecutionFinished()
     End Sub
-    Public Async Function ExecuteAsync(Optional useDefaultOutputHandler As Boolean = True, Optional useDefaultHandlers As Boolean = True) As Task(Of Boolean)
+    Public Async Function ExecuteAsync(Optional useDefaultOutputHandler As Boolean = True, Optional useDefaultHandlers As Boolean = True, Optional ct As CancellationToken = Nothing) As Task(Of Boolean)
         PreExecution(useDefaultHandlers)
+        If ct.CanBeCanceled Then ct.Register(AddressOf CancelAsync)
         Using ps = psCurrent
             Using output As New PSDataCollection(Of PSObject)
                 Try
@@ -125,8 +126,9 @@ Public Class PSExecuter
             End Using
         End Using
     End Function
-    Public Async Function GetResults(Of T)(Optional useDefaultHandlers As Boolean = False) As Task(Of IEnumerable(Of T))
+    Public Async Function GetResults(Of T)(Optional useDefaultHandlers As Boolean = False, Optional ct As CancellationToken = Nothing) As Task(Of IEnumerable(Of T))
         PreExecution(useDefaultHandlers)
+        If ct.CanBeCanceled Then ct.Register(AddressOf CancelAsync)
         Using ps = psCurrent
             Using output As New PSDataCollection(Of PSObject)
                 Try
@@ -148,8 +150,9 @@ Public Class PSExecuter
             End Using
         End Using
     End Function
-    Public Async Function GetResults(Optional useDefaultHandlers As Boolean = False) As Task(Of IEnumerable(Of Object))
+    Public Async Function GetResults(Optional useDefaultHandlers As Boolean = False, Optional ct As CancellationToken = Nothing) As Task(Of IEnumerable(Of Object))
         PreExecution(useDefaultHandlers)
+        If ct.CanBeCanceled Then ct.Register(AddressOf CancelAsync)
         Using ps = psCurrent
             Using output As New PSDataCollection(Of PSObject)
                 Try
@@ -171,15 +174,15 @@ Public Class PSExecuter
             End Using
         End Using
     End Function
-    Public Async Function GetResult(Of T)(Optional useDefaultHandlers As Boolean = False) As Task(Of T)
-        Dim results = Await GetResults(Of T)(useDefaultHandlers)
+    Public Async Function GetResult(Of T)(Optional useDefaultHandlers As Boolean = False, Optional ct As CancellationToken = Nothing) As Task(Of T)
+        Dim results = Await GetResults(Of T)(useDefaultHandlers, ct:=ct)
         Return results.FirstOrDefault
     End Function
-    Public Async Function GetResult(Optional useDefaultHandlers As Boolean = False) As Task(Of Object)
-        Dim results = Await GetResults(useDefaultHandlers)
+    Public Async Function GetResult(Optional useDefaultHandlers As Boolean = False, Optional ct As CancellationToken = Nothing) As Task(Of Object)
+        Dim results = Await GetResults(useDefaultHandlers, ct:=ct)
         Return results.FirstOrDefault
     End Function
-    Public Async Function RunAsync(scriptBlock As String, Optional scriptParameters As Dictionary(Of String, Object) = Nothing) As Task(Of Boolean)
+    Public Async Function RunAsync(scriptBlock As String, Optional scriptParameters As Dictionary(Of String, Object) = Nothing, Optional ct As CancellationToken = Nothing) As Task(Of Boolean)
         If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
 
         NewPipeline(scriptBlock)
@@ -188,14 +191,14 @@ Public Class PSExecuter
                 AddParameter(kvp.Key, kvp.Value)
             Next
         End If
-        Return Await ExecuteAsync()
+        Return Await ExecuteAsync(ct:=ct)
         _isBusy = True
     End Function
-    Public Async Function GetScriptVariable(Of T)(varName As String) As Task(Of IEnumerable(Of T))
-        Return Await NewPipeline.AddCommand("Get-Variable").AddArgument(varName).AddParameter("ValueOnly").GetResults(Of T)()
+    Public Async Function GetScriptVariable(Of T)(varName As String, Optional ct As CancellationToken = Nothing) As Task(Of IEnumerable(Of T))
+        Return Await NewPipeline.AddCommand("Get-Variable").AddArgument(varName).AddParameter("ValueOnly").GetResults(Of T)(ct:=ct)
     End Function
-    Public Async Function GetScriptVariable(varName As String) As Task(Of IEnumerable(Of Object))
-        Return Await NewPipeline.AddCommand("Get-Variable").AddArgument(varName).AddParameter("ValueOnly").GetResults()
+    Public Async Function GetScriptVariable(varName As String, Optional ct As CancellationToken = Nothing) As Task(Of IEnumerable(Of Object))
+        Return Await NewPipeline.AddCommand("Get-Variable").AddArgument(varName).AddParameter("ValueOnly").GetResults(ct:=ct)
     End Function
 #End Region
 
