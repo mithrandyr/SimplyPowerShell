@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.Dynamic
 Imports System.Threading
 Imports CommunityToolkit.Mvvm.Input
 Imports Simply.PSDotNet
@@ -162,7 +163,12 @@ Public Class MainWindowViewModel
         TestCommand = New AsyncRelayCommand(
             Async Function()
                 Await pse.NewPipeline("write-information 'test function'").ExecuteAsync()
-
+                Dim x As Object = New ExpandoObject
+                x.Name = "Bob"
+                x.Age = 39
+                If x.NAME IsNot Nothing Then
+                    Await pse.AddCommand("Write-Host").ExecuteAsync(x)
+                End If
                 Return True
             End Function, Function() Not ExecuteCommand.IsRunning)
         RegisterCommand(TestCommand)
