@@ -161,9 +161,9 @@ Public Class MainWindowViewModel
         'Test Command
         TestCommand = New AsyncRelayCommand(
             Async Function()
-                Await pse.NewPipeline("filter x { write-host ""#$_""}").ExecuteAsync
-                pse.AddCommand("x")
-                Return Await pse.ExecuteAsync({1, 2, 3})
+                Await pse.NewPipeline("write-information 'test function'").ExecuteAsync()
+
+                Return True
             End Function, Function() Not ExecuteCommand.IsRunning)
         RegisterCommand(TestCommand)
     End Sub
