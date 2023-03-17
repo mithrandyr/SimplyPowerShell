@@ -207,11 +207,14 @@ Public Class PSExecuter
 #Region "Fluent Composition of Powershell Pipelines/Commands that will be Executed"
     Public Function NewPipeline(Optional withScript As String = Nothing) As PSExecuter
         If IsBusy Then Throw New InvalidOperationException("PowerShell is already executing!")
-        If psCurrent Is Nothing Then psCurrent = PowerShell.Create
-        If String.IsNullOrWhiteSpace(withScript) Then
-            psCurrent.AddStatement()
+        If psCurrent Is Nothing Then
+            psCurrent = PowerShell.Create()
+            If Not String.IsNullOrWhiteSpace(withScript) Then
+                psCurrent.AddScript(withScript)
+            End If
         Else
-            psCurrent.AddScript(withScript)
+            psCurrent.AddStatement()
+            If Not String.IsNullOrWhiteSpace(withScript) Then psCurrent.AddScript(withScript)
         End If
         Return Me
     End Function
