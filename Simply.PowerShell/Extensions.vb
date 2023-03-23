@@ -1,5 +1,4 @@
 ﻿Imports System.Dynamic
-Imports System.Management.Automation.Language
 Imports System.Runtime.CompilerServices
 
 Module Extensions
@@ -7,8 +6,8 @@ Module Extensions
     Function AsExpandoObject(this As PSObject) As ExpandoObject
         Dim eo = CType(New ExpandoObject, IDictionary(Of String, Object))
         For Each prop In this.Properties
-            If prop.TypeNameOfValue.Equals("System.Management.Automation.PSCustomObject", StringComparison.OrdinalIgnoreCase) Or
-                prop.TypeNameOfValue.Equals("System.Management.Automation.PSObject", StringComparison.OrdinalIgnoreCase) Then
+            If prop.TypeNameOfValue.EndsWith("System.Management.Automation.PSCustomObject", StringComparison.OrdinalIgnoreCase) Or
+                prop.TypeNameOfValue.EndsWith("System.Management.Automation.PSObject", StringComparison.OrdinalIgnoreCase) Then
                 eo.Add(prop.Name, DirectCast(prop.Value, PSObject).AsExpandoObject)
             ElseIf TypeOf prop.Value Is ICollection Then
                 eo.Add(prop.Name, DirectCast(prop.Value, ICollection).AsExpandoObject)
