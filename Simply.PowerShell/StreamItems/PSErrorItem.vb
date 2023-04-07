@@ -12,7 +12,6 @@
             Return BaseObject.Exception.Message
         End Get
     End Property
-
 #End Region
 
     Public Sub New(nErrorRecord As ErrorRecord, Optional nGenerated As Nullable(Of DateTimeOffset) = Nothing)

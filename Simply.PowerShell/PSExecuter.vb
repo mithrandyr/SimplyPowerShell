@@ -75,10 +75,10 @@ Public Class PSExecuter
     Public Sub SetSessionVariable(varName As String, value As Object)
         psRunspace.SessionStateProxy.SetVariable(varName, value)
     End Sub
-    Public Sub CancelAsync()
+    Public Async Sub CancelAsync()
         If psCurrent IsNot Nothing Then
             _isStopped = True
-            psCurrent.Stop()
+            Await Task.Run(Sub() psCurrent.Stop())
         End If
     End Sub
 
